@@ -17,6 +17,7 @@ These are in the pipfile but they include:
 
 ## Command line Arguments
 ArgumentParser is used to set up the following command line arguments.
+
 ```
 usage: prawScraper.py [-h] [-s SUBREDDIT] [-l SAVED_LIMIT] [-v] -d
                       DOWNLOAD_DIR [-a AUTH_FILE] [-nsfw NSFW_FLAG] [-u]
@@ -37,7 +38,8 @@ optional arguments:
   -nsfw NSFW_FLAG, --not_safe_for_work NSFW_FLAG
                         show nsfw posts: none, include, exclusive
   -u, --unsave          unsave the posts that get downloaded
-  ```
+```
+
 ## Notes:
 
 * The limit argument is used like ``reddit.user.me().saved(limit=saved_limit)``
