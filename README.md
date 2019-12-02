@@ -15,7 +15,7 @@ These are in the pipfile but they include:
 * tqdm : Pretty download graphs     (https://pypi.org/project/tqdm/)
 * requests : HTTP library           (https://pypi.org/project/requests/)
 
-## Command line Arguments
+## Command line arguments
 ArgumentParser is used to set up the following command line arguments.
 
 ```
@@ -40,7 +40,7 @@ optional arguments:
   -u, --unsave          unsave the posts that get downloaded
 ```
 
-## Notes:
+## Notes
 
 * The limit argument is used like ``reddit.user.me().saved(limit=saved_limit)``
     * It seems like the unlimited call to .saved() still only responds with a small number of posts.
