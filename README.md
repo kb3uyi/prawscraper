@@ -9,7 +9,8 @@ The praw project has excellent documentation for this: [praw.readthedocs.io](htt
 Choose a web app and include your client id/secret and all the other things in the template file in 'authenitcationm.json'. **Remember to .gitignore this file!**
 
 ## Dependencies 
-These are in the pipfile but they include
+These are in the pipfile but they include:
+
 * praw : Reddit API wrapper         (https://pypi.org/project/praw/)
 * tqdm : Pretty download graphs     (https://pypi.org/project/tqdm/)
 * requests : HTTP library           (https://pypi.org/project/requests/)
