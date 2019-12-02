@@ -45,7 +45,7 @@ optional arguments:
   ```
 ## Notes:
 
-* The limit arguement is used like ``reddit.user.me().saved(limit=saved_limit)``
+* The limit argument is used like ``reddit.user.me().saved(limit=saved_limit)``
     * It seems like the unlimited call to .saved() still only responds with a small number of posts.
     * This could be a limitation of the reddit API, I dont know. The web UI has limits and even RES only loads posts a few at a time.
 * Repeatedly calling this script with unsaved and a large limit is the best way to download all images.
