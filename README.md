@@ -49,3 +49,5 @@ optional arguments:
     * with a small limit like 100, you could reach a state where you have 100 self posts in a row without an image.
     * Unsaving and running again would still result in no images if you did that.
     * Perhaps in the future I could implement a real no limit mode by automatically unsaving and re-running many times until there really are no images left.
+* In the future, I would like to make the allowed file type also a .json configuration file. 
+    * Currently the only allowed file types are: ".jpg", ".png", ".gif"
