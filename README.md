@@ -4,9 +4,9 @@ A simple reddit bot in python 3 that will download images from the posts you hav
 
 ## Authentication
 
-The template authentication _template.json is provided, but you should set up your app reffering to the standard bot creation steps for a reddit account.
+The template authentication_template.json is provided, but you should set up your app reffering to the standard bot creation steps for a reddit account.
 The praw project has excellent documentation for this: [praw.readthedocs.io](https://praw.readthedocs.io/en/v3.6.0/pages/writing_a_bot.html)
-Choose a web app and include your client id/secret and all the other things in the template file in 'authenitcationm.json'. **Remember to .gitignore this file!**
+Choose a web app and include your client id/secret and all the other things in the template file in 'authenitcation.json'. **Remember to .gitignore this file!**
 
 ## Dependencies 
 These are in the pipfile but they include:
