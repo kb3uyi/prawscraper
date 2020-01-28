@@ -30,6 +30,9 @@ class prawScraper:
                             help="show nsfw posts: none, include, exclusive", metavar="NSFW_FLAG")
         parser.add_argument("-u", "--unsave", help="unsave the posts that get downloaded", action="store_true")
 
+        # ! TODO: add an argument to prompt for credentials. leave authfile for client and secret.
+        # ! TODO: add an argument for additional file types. 
+
         args = parser.parse_args()
 
         if args.authfile is None:
@@ -49,11 +52,11 @@ class prawScraper:
                              user_agent     = auth_data['user_agent'],
                              username       = auth_data['username']
                              )
-        
+
         if verbose:
             print(reddit.user.me())
             print("Download Directory: " + downloadDir)
-        
+
         # set read only mode
         # reddit.read_only = True
 
@@ -69,17 +72,16 @@ class prawScraper:
             if verbose:
                 print("Selected subredit name: " + selected_sub.name)
                 print("Selected subredit id: " + selected_sub.id)
-        
-    
+
         if saved_limit is None:
-            saved = reddit.user.me().saved()   
+            saved = reddit.user.me().saved()
         else:
             saved = reddit.user.me().saved(limit=saved_limit)
 
         for post in saved:
             try:
-                if isinstance(post, praw.models.Submission): 
-                    if subreddit_selected == True: 
+                if isinstance(post, praw.models.Submission):
+                    if subreddit_selected == True:
                         if post.subreddit_id == selected_sub.name:
                             prawScraper.process_post(post, verbose, downloadDir, nsfw, unsave)
                     else:
@@ -107,7 +109,7 @@ class prawScraper:
                 # print("filename: " + filename)
                 # print("extension: " + extension)
                 print(post.url + " : " + filename + extension)
-            
+
             # Streaming, so we can iterate over the response.
             r = requests.get(post.url, stream=True)
             # To save to a relative path.
@@ -128,8 +130,7 @@ class prawScraper:
 
             if unsave:
                 if verbose:
-                    
-                    
+
                     print(post.url + " (" + filename + extension + ") was unsaved.")
                 post.unsave()
 
