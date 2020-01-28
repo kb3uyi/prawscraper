@@ -30,8 +30,8 @@ class prawScraper:
                             help="show nsfw posts: none, include, exclusive", metavar="NSFW_FLAG")
         parser.add_argument("-u", "--unsave", help="unsave the posts that get downloaded", action="store_true")
 
-        # ! TODO: add an argument to prompt for credentials. leave authfile for client and secret.
-        # ! TODO: add an argument for additional file types. 
+        # TODO: add an argument to prompt for credentials. leave authfile for client and secret.
+        # TODO: add an argument for additional file types.
 
         args = parser.parse_args()
 
@@ -42,9 +42,12 @@ class prawScraper:
 
         prawScraper.scrape(args.subreddit, args.limit, args.verbose, args.directory, args.authfile, args.nsfw, args.unsave)
 
-    def scrape(subreddit, limit, verbose, downloadDir, authFile, nsfw, unsave): 
+    def scrape(subreddit, limit, verbose, downloadDir, authFile, nsfw, unsave):
         with open(authFile) as f:
             auth_data = json.load(f)
+
+        # ? things not in the JSON file are null right?
+        # TODO add the check that username and password should be prompted.
 
         reddit = praw.Reddit(client_id      = auth_data['client_id'],
                              client_secret  = auth_data['client_secret'],
@@ -113,20 +116,20 @@ class prawScraper:
             # Streaming, so we can iterate over the response.
             r = requests.get(post.url, stream=True)
             # To save to a relative path.
-            #r = requests.get(url)  
+            #r = requests.get(url)
             with open(downloadDir + filename + extension, 'wb') as f:
                 f.write(r.content)
 
             # Total size in bytes.
-            total_size = int(r.headers.get('content-length', 0)); 
+            total_size = int(r.headers.get('content-length', 0));
             block_size = 1024
-            wrote = 0 
+            wrote = 0
             with open('output.bin', 'wb') as f:
                 for data in tqdm(r.iter_content(block_size), total=math.ceil(total_size//block_size) , unit='KB', unit_scale=True):
                     wrote = wrote  + len(data)
                     f.write(data)
             if total_size != 0 and wrote != total_size:
-                print("ERROR, something went wrong") 
+                print("ERROR, something went wrong")
 
             if unsave:
                 if verbose:
