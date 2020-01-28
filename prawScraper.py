@@ -15,6 +15,24 @@ class prawScraper:
     allowedFiletypes = (".jpg",".png",".gif")
 
     def main(argv):
+        """Main function for fetching saved reddit posts
+
+        Arguments: None
+        Command Line Arguments:
+            -h, --help            show this help message and exit
+            -s SUBREDDIT, --subreddit SUBREDDIT
+                                    subreddit to filter on, optional
+            -l SAVED_LIMIT, --limit SAVED_LIMIT
+                                    limit number of saved posts
+            -v, --verbose         increase output verbosity
+            -d DOWNLOAD_DIR, --directory DOWNLOAD_DIR
+                                    directory to save images to
+            -a AUTH_FILE, --authfile AUTH_FILE
+                                    json file for reddit authentication
+            -nsfw NSFW_FLAG, --not_safe_for_work NSFW_FLAG
+                                    show nsfw posts: none, include, exclusive
+            -u, --unsave          unsave the posts that get downloaded
+        """
         parser = ArgumentParser(description='Process saved reddit posts using \'authenitcation.json\' account info.')
         parser.add_argument("-s", "--subreddit", dest="subreddit",
                             help="subreddit to filter on, optional", metavar="SUBREDDIT")
@@ -43,6 +61,17 @@ class prawScraper:
         prawScraper.scrape(args.subreddit, args.limit, args.verbose, args.directory, args.authfile, args.nsfw, args.unsave)
 
     def scrape(subreddit, limit, verbose, downloadDir, authFile, nsfw, unsave):
+        """Function to loop over the saved reddit posts.
+
+        Arguments:
+            subreddit {string} -- subreddit to check (null for all subreddits)
+            limit {int} -- limit of posts to fetch in a single call
+            verbose {boolean} -- set output verbosity
+            downloadDir {string} -- destination of saved files
+            authFile {string} -- path to the authentication file
+            nsfw {string} -- set nsfw inclusion: none, include, exclusive
+            unsave {boolean} -- should processed posts be unsaved
+        """
         with open(authFile) as f:
             auth_data = json.load(f)
 
@@ -93,6 +122,18 @@ class prawScraper:
                 print(err)
 
     def process_post(post, verbose, downloadDir, nsfw, unsave):
+        """Function to process individual posts from the set of fetched posts
+
+        Arguments:
+            post {string} -- fetched post URL
+            verbose {boolean} -- set output verbosity
+            downloadDir {string} -- destination of saved files
+            authFile {string} -- path to the authentication file
+            nsfw {string} -- set nsfw inclusion: none, include, exclusive
+            unsave {boolean} -- should processed posts be unsaved
+        Returns:
+            None
+        """
         if nsfw == "none" and post.over_18:
             return # This post cannot be included in a worksafe run
         if nsfw == "exclusive" and not post.over_18:
@@ -138,4 +179,6 @@ class prawScraper:
                 post.unsave()
 
 if __name__ == "__main__":
+   """call class main
+   """
    prawScraper.main(sys.argv[1:])
