@@ -15,41 +15,6 @@ class prawScraper:
         self.allowedFiletypes = allowedFiletypes
         self.debug = debug
 
-    def main(argv):
-        """Main function for fetching saved reddit posts
-
-        Arguments:
-            argv {list of string} -- command line arguments
-        """
-        parser = ArgumentParser(description='Process saved reddit posts using \'authenitcation.json\' account info.')
-        parser.add_argument("-s", "--subreddit", dest="subreddit",
-                            help="subreddit to filter on, optional", metavar="SUBREDDIT")
-        parser.add_argument("-l", "--limit", dest="limit", type=int,
-                            help="limit number of saved posts", metavar="SAVED_LIMIT")
-        parser.add_argument("-v", "--verbose", help="increase output verbosity",
-                            action="store_true")
-        parser.add_argument("-d", "--directory", dest="directory", required=True,
-                            help="directory to save images to", metavar="DOWNLOAD_DIR")
-        parser.add_argument("-a", "--authfile", dest="authfile",
-                            help="json file for reddit authentication", metavar="AUTH_FILE")
-        parser.add_argument("-nsfw", "--not_safe_for_work", dest="nsfw",
-                            help="show nsfw posts: none, include, exclusive", metavar="NSFW_FLAG")
-        parser.add_argument("-u", "--unsave", help="unsave the posts that get downloaded", action="store_true")
-        parser.add_argument("--debug", dest="debug", help="debug flag", action="store_true")
-        args = parser.parse_args()
-        # TODO: add an argument to prompt for credentials. leave authfile for client and secret.
-        # TODO: add an argument for additional file types.
-
-        # Default to an authfile in this directory and set no nsfw in an abundance of caution.
-        # TODO argumentparser has default settings. this should be removed.
-        if args.authfile is None:
-            args.authfile =  './authentication.json'
-        if args.nsfw is None:
-            args.nsfw =  'none'
-
-        scraperObj = prawScraper({".jpg",".png",".gif"}, args.debug)
-        scraperObj.scrape(args.subreddit, args.limit, args.verbose, args.directory, args.authfile, args.nsfw, args.unsave)
-
     def scrape(self, subreddit, limit, verbose, downloadDir, authFile, nsfw, unsave):
         """Function to loop over the saved reddit posts.
 
@@ -67,7 +32,7 @@ class prawScraper:
 
         # ? things not in the JSON file are null right?
         # TODO add the check that username and password should be prompted.
-
+        # ! even if the username and password are prompted, authfile is needed for client and secret
         reddit = praw.Reddit(client_id      = auth_data['client_id'],
                              client_secret  = auth_data['client_secret'],
                              password       = auth_data['password'],
@@ -167,6 +132,46 @@ class prawScraper:
         elif self.debug:
             print("REJECTED - " + post.url + " : " + filename + extension)
 
+def main(argv):
+        """Main function for fetching saved reddit posts
+
+        Arguments:
+            argv {list of string} -- command line arguments
+        """
+        parser = ArgumentParser(description='Process saved reddit posts using \'authenitcation.json\' account info.')
+        parser.add_argument("-a", "--authfile", dest="authfile", default="./authentication.json",
+                            help="json file for reddit authentication", metavar="AUTH_FILE")
+        parser.add_argument("-f", "--filetypes", dest="typesJSON", default="./filetypes.json",
+                            help="json file for filetypes to download", metavar="TYPES_JSON")
+        parser.add_argument("-d", "--directory", dest="directory", required=True,
+                            help="directory to save images to", metavar="DOWNLOAD_DIR")
+        parser.add_argument("-s", "--subreddit", dest="subreddit",
+                            help="subreddit to filter on, optional", metavar="SUBREDDIT")
+        parser.add_argument("-l", "--limit", dest="limit", type=int,
+                            help="limit number of saved posts", metavar="SAVED_LIMIT")
+        parser.add_argument("-v", "--verbose", help="increase output verbosity",
+                            action="store_true")
+        parser.add_argument("-nsfw", "--not_safe_for_work", dest="nsfw", default="none",
+                            help="show nsfw posts: none, include, exclusive", metavar="NSFW_FLAG")
+        parser.add_argument("-u", "--unsave", help="unsave the posts that get downloaded", action="store_true")
+        parser.add_argument("--debug", dest="debug", help="debug flag", action="store_true")
+
+        args = parser.parse_args()
+        # TODO: add an argument to prompt for credentials. leave authfile for client and secret.
+        # TODO: add an argument for additional file types.
+
+        with open(args.typesJSON) as typesFile:
+            types_data = json.load(typesFile)
+
+        if  args.debug:
+            print("DEBUG: auth file = " + args.authfile)
+            print("DEBUG: nsfw = " + args.nsfw)
+            print("DEBUG: unsave = " + str(args.unsave))
+            print("DEBUG: types file = " + args.typesJSON)
+
+        scraperObj = prawScraper(types_data['allowedFiletypes'], args.debug)
+        scraperObj.scrape(args.subreddit, args.limit, args.verbose, args.directory, args.authfile, args.nsfw, args.unsave)
+
 if __name__ == "__main__":
    """call class main"""
-   prawScraper.main(sys.argv[1:])
+   main(sys.argv[1:])
