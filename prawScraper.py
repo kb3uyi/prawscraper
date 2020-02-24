@@ -10,9 +10,10 @@ import math
 from os import path
 
 class prawScraper:
-
-    # Class Variables
-    allowedFiletypes = (".jpg",".png",".gif")
+    # Constructor method with instance variables allowedFiletypes and agedebug
+    def __init__(self, allowedFiletypes, debug):
+        self.allowedFiletypes = allowedFiletypes
+        self.debug = debug
 
     def main(argv):
         """Main function for fetching saved reddit posts
@@ -34,20 +35,22 @@ class prawScraper:
         parser.add_argument("-nsfw", "--not_safe_for_work", dest="nsfw",
                             help="show nsfw posts: none, include, exclusive", metavar="NSFW_FLAG")
         parser.add_argument("-u", "--unsave", help="unsave the posts that get downloaded", action="store_true")
-
+        parser.add_argument("--debug", dest="debug", help="debug flag", action="store_true")
+        args = parser.parse_args()
         # TODO: add an argument to prompt for credentials. leave authfile for client and secret.
         # TODO: add an argument for additional file types.
 
-        args = parser.parse_args()
-
+        # Default to an authfile in this directory and set no nsfw in an abundance of caution.
+        # TODO argumentparser has default settings. this should be removed.
         if args.authfile is None:
             args.authfile =  './authentication.json'
         if args.nsfw is None:
             args.nsfw =  'none'
 
-        prawScraper.scrape(args.subreddit, args.limit, args.verbose, args.directory, args.authfile, args.nsfw, args.unsave)
+        scraperObj = prawScraper({".jpg",".png",".gif"}, args.debug)
+        scraperObj.scrape(args.subreddit, args.limit, args.verbose, args.directory, args.authfile, args.nsfw, args.unsave)
 
-    def scrape(subreddit, limit, verbose, downloadDir, authFile, nsfw, unsave):
+    def scrape(self, subreddit, limit, verbose, downloadDir, authFile, nsfw, unsave):
         """Function to loop over the saved reddit posts.
 
         Arguments:
@@ -102,13 +105,13 @@ class prawScraper:
                 if isinstance(post, praw.models.Submission):
                     if subreddit_selected == True:
                         if post.subreddit_id == selected_sub.name:
-                            prawScraper.process_post(post, verbose, downloadDir, nsfw, unsave)
+                            prawScraper.__process_post(post, verbose, downloadDir, nsfw, unsave)
                     else:
-                        prawScraper.process_post(post, verbose, downloadDir, nsfw, unsave)
+                        prawScraper.__process_post(self, post, verbose, downloadDir, nsfw, unsave)
             except AttributeError as err:
                 print(err)
 
-    def process_post(post, verbose, downloadDir, nsfw, unsave):
+    def __process_post(self, post, verbose, downloadDir, nsfw, unsave):
         """Function to process individual posts from the set of fetched posts
 
         Arguments:
@@ -133,23 +136,20 @@ class prawScraper:
         extension = path.splitext(post.url)[1].split("?")[0]
         filename =  path.basename(path.splitext(post.url)[0])
 
-        if any(matchExt in extension for matchExt in prawScraper.allowedFiletypes):
-            # s in extension for s in prawScraper.allowedFiletypes
+        if extension in self.allowedFiletypes:
             # filetype allowed, download
             if verbose:
-                # print("filename: " + filename)
-                # print("extension: " + extension)
                 print(post.url + " : " + filename + extension)
 
             # Streaming, so we can iterate over the response.
             r = requests.get(post.url, stream=True)
             # To save to a relative path.
-            #r = requests.get(url)
+            # r = requests.get(url)
             with open(downloadDir + filename + extension, 'wb') as f:
                 f.write(r.content)
 
             # Total size in bytes.
-            total_size = int(r.headers.get('content-length', 0));
+            total_size = int(r.headers.get('content-length', 0))
             block_size = 1024
             wrote = 0
             with open('output.bin', 'wb') as f:
@@ -164,8 +164,9 @@ class prawScraper:
 
                     print(post.url + " (" + filename + extension + ") was unsaved.")
                 post.unsave()
+        elif self.debug:
+            print("REJECTED - " + post.url + " : " + filename + extension)
 
 if __name__ == "__main__":
-   """call class main
-   """
+   """call class main"""
    prawScraper.main(sys.argv[1:])
