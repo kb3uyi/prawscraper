@@ -8,6 +8,19 @@ The template authentication_template.json is provided, but you should set up you
 The praw project has excellent documentation for this: [praw.readthedocs.io](https://praw.readthedocs.io/en/v3.6.0/pages/writing_a_bot.html)
 Choose a web app and include your client id/secret and all the other things in the template file in 'authenitcation.json'. **Remember to .gitignore this file!**
 
+## List of Downloadable File Types
+
+This was originally intended to download wallpapers and funny memes that had been 'saved' on reddit while on another device, so it focuses on images. You can add file types to a json file and specify it when you run the scraper. default is "./filetypes.json".
+
+###
+```
+{
+    "allowedFiletypes": [".jpg",".png",".gif"]
+}
+```
+
+** Note that there are redirects on many gifv and webm files that I have not handled yet. Videos uploaded to reddit have no extension and the saved object is a partial reddit web page. **
+
 ## Dependencies 
 These are in the pipfile but they include:
 
@@ -49,5 +62,4 @@ optional arguments:
     * with a small limit like 100, you could reach a state where you have 100 self posts in a row without an image.
     * Unsaving and running again would still result in no images if you did that.
     * Perhaps in the future I could implement a real no limit mode by automatically unsaving and re-running many times until there really are no images left.
-* In the future, I would like to make the allowed file type also a .json configuration file. 
-    * Currently the only allowed file types are: ".jpg", ".png", ".gif"
+* In the future, I would like to handle web videos and other files that are behind a redirect.
