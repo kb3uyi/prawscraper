@@ -3,7 +3,7 @@
 import praw
 import json
 import sys
-from argparse import ArgumentParser
+import argparse
 from tqdm import tqdm
 import requests
 import math
@@ -107,26 +107,28 @@ class prawScraper:
                 print(post.url + " : " + filename + extension)
 
             # Streaming, so we can iterate over the response.
+            # To save to a relative path: r = requests.get(url)
             r = requests.get(post.url, stream=True)
-            # To save to a relative path.
-            # r = requests.get(url)
-            with open(downloadDir + filename + extension, 'wb') as f:
-                f.write(r.content)
 
-            # Total size in bytes.
-            total_size = int(r.headers.get('content-length', 0))
-            block_size = 1024
-            wrote = 0
-            with open('output.bin', 'wb') as f:
-                for data in tqdm(r.iter_content(block_size), total=math.ceil(total_size//block_size) , unit='KB', unit_scale=True):
-                    wrote = wrote  + len(data)
-                    f.write(data)
-            if total_size != 0 and wrote != total_size:
-                print("ERROR, something went wrong")
+            if not path.exists(downloadDir + filename + extension):
+                with open(downloadDir + filename + extension, 'wb') as f:
+                    f.write(r.content)
+
+                # Total size in bytes.
+                total_size = int(r.headers.get('content-length', 0))
+                block_size = 1024
+                wrote = 0
+                with open('output.bin', 'wb') as f:
+                    for data in tqdm(r.iter_content(block_size), total=math.ceil(total_size//block_size) , unit='KB', unit_scale=True):
+                        wrote = wrote  + len(data)
+                        f.write(data)
+                if total_size != 0 and wrote != total_size:
+                    print("ERROR, something went wrong")
+            elif self.debug:
+                print("SKIPPED, file exists - " + filename + extension)
 
             if unsave:
                 if verbose:
-
                     print(post.url + " (" + filename + extension + ") was unsaved.")
                 post.unsave()
         elif self.debug:
@@ -138,7 +140,7 @@ def main(argv):
         Arguments:
             argv {list of string} -- command line arguments
         """
-        parser = ArgumentParser(description='Process saved reddit posts using \'authenitcation.json\' account info.')
+        parser = argparse.ArgumentParser(description='Process saved reddit posts using \'authenitcation.json\' account info.')
         parser.add_argument("-a", "--authfile", dest="authfile", default="./authentication.json",
                             help="json file for reddit authentication", metavar="AUTH_FILE")
         parser.add_argument("-f", "--filetypes", dest="typesJSON", default="./filetypes.json",
@@ -154,7 +156,7 @@ def main(argv):
         parser.add_argument("-nsfw", "--not_safe_for_work", dest="nsfw", default="none",
                             help="show nsfw posts: none, include, exclusive", metavar="NSFW_FLAG")
         parser.add_argument("-u", "--unsave", help="unsave the posts that get downloaded", action="store_true")
-        parser.add_argument("--debug", dest="debug", help="debug flag", action="store_true")
+        parser.add_argument("--debug", dest="debug", help=argparse.SUPPRESS, action="store_true")
 
         args = parser.parse_args()
         # TODO: add an argument to prompt for credentials. leave authfile for client and secret.
