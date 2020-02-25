@@ -32,22 +32,25 @@ These are in the pipfile but they include:
 ArgumentParser is used to set up the following command line arguments.
 
 ```
-usage: prawScraper.py [-h] [-s SUBREDDIT] [-l SAVED_LIMIT] [-v] -d
-                      DOWNLOAD_DIR [-a AUTH_FILE] [-nsfw NSFW_FLAG] [-u]
+usage: prawScraper.py [-h] [-a AUTH_FILE] [-f TYPES_JSON] -d DOWNLOAD_DIR
+                      [-s SUBREDDIT] [-l SAVED_LIMIT] [-v] [-nsfw NSFW_FLAG]
+                      [-u]
 
 Process saved reddit posts using 'authenitcation.json' account info.
 
 optional arguments:
   -h, --help            show this help message and exit
+  -a AUTH_FILE, --authfile AUTH_FILE
+                        json file for reddit authentication
+  -f TYPES_JSON, --filetypes TYPES_JSON
+                        json file for filetypes to download
+  -d DOWNLOAD_DIR, --directory DOWNLOAD_DIR
+                        directory to save images to
   -s SUBREDDIT, --subreddit SUBREDDIT
                         subreddit to filter on, optional
   -l SAVED_LIMIT, --limit SAVED_LIMIT
                         limit number of saved posts
   -v, --verbose         increase output verbosity
-  -d DOWNLOAD_DIR, --directory DOWNLOAD_DIR
-                        directory to save images to
-  -a AUTH_FILE, --authfile AUTH_FILE
-                        json file for reddit authentication
   -nsfw NSFW_FLAG, --not_safe_for_work NSFW_FLAG
                         show nsfw posts: none, include, exclusive
   -u, --unsave          unsave the posts that get downloaded
