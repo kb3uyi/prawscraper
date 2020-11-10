@@ -9,6 +9,7 @@ verify_ssl = true
 praw = "*"
 tqdm = "*"
 requests = "*"
+Pipfile = "*"
 
 [requires]
 python_version = "3"
