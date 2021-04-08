@@ -8,6 +8,7 @@ from tqdm import tqdm
 import requests
 import math
 from os import path
+from urllib.parse import urlparse
 
 class prawScraper:
     # Constructor method with instance variables allowedFiletypes and agedebug
@@ -70,13 +71,13 @@ class prawScraper:
                 if isinstance(post, praw.models.Submission):
                     if subreddit_selected == True:
                         if post.subreddit_id == selected_sub.name:
-                            prawScraper.__process_post(post, verbose, downloadDir, nsfw, unsave)
+                            prawScraper.process_post(post, verbose, downloadDir, nsfw, unsave)
                     else:
-                        prawScraper.__process_post(self, post, verbose, downloadDir, nsfw, unsave)
+                        prawScraper.process_post(self, post, verbose, downloadDir, nsfw, unsave)
             except AttributeError as err:
                 print(err)
 
-    def __process_post(self, post, verbose, downloadDir, nsfw, unsave):
+    def process_post(self, post, verbose, downloadDir, nsfw, unsave):
         """Function to process individual posts from the set of fetched posts
 
         Arguments:
@@ -94,45 +95,96 @@ class prawScraper:
         if nsfw == "exclusive" and not post.over_18:
             return # This post cannot be indluded in a non-worsafe run
         # The 'included' case is a free for all
-
-        if post.is_self:    return
-
+        
         # submission link is at post.url, separate the extension
-        extension = path.splitext(post.url)[1].split("?")[0]
-        filename =  path.basename(path.splitext(post.url)[0])
-
+        urlParts =  urlparse(post.url) # Parse URL into parts
+        filename =  path.basename(urlParts.path) # basename is the filename and extension
+        extension = path.splitext(filename)[1].split("?")[0] # split for extension
+        
         if extension in self.allowedFiletypes:
             # filetype allowed, download
             if verbose:
-                print(post.url + " : " + filename + extension)
+                print(post.url + " : " + filename)
 
-            # Streaming, so we can iterate over the response.
-            # To save to a relative path: r = requests.get(url)
-            r = requests.get(post.url, stream=True)
-
-            if not path.exists(downloadDir + filename + extension):
-                with open(downloadDir + filename + extension, 'wb') as f:
-                    f.write(r.content)
-
-                # Total size in bytes.
-                total_size = int(r.headers.get('content-length', 0))
-                block_size = 1024
-                wrote = 0
-                with open('output.bin', 'wb') as f:
-                    for data in tqdm(r.iter_content(block_size), total=math.ceil(total_size//block_size) , unit='KB', unit_scale=True):
-                        wrote = wrote  + len(data)
-                        f.write(data)
-                if total_size != 0 and wrote != total_size:
-                    print("ERROR, something went wrong")
-            elif self.debug:
-                print("SKIPPED, file exists - " + filename + extension)
+            # Call helper method for code reuse
+            prawScraper.download_file(post.url, downloadDir)
 
             if unsave:
                 if verbose:
-                    print(post.url + " (" + filename + extension + ") was unsaved.")
+                    print(post.title + " was unsaved.")
                 post.unsave()
         elif self.debug:
-            print("REJECTED - " + post.url + " : " + filename + extension)
+            print("REJECTED - " + post.url + " : " + filename)
+        else:
+            prawScraper.gallery_process(self, post, verbose, downloadDir, unsave)
+            
+    def download_file(downloadURL, downloadDir):
+        """Download a file once the URL is completely set.
+
+        Arguments:
+            downloadURL {string} -- source URL
+            downloadDir {string} -- destination of saved files
+        Returns:
+            None
+        """
+        # re-split for the file name
+        urlParts =  urlparse(downloadURL) # Parse URL into parts
+        filename =  path.basename(urlParts.path) # basename is the filename and extension
+
+        # Streaming, so we can iterate over the response.
+        # To save to a relative path: r = requests.get(url)
+        r = requests.get(downloadURL, stream=True)
+
+        if not path.exists(downloadDir + filename):
+            with open(downloadDir + filename, 'wb') as f:
+                f.write(r.content)
+
+            # Total size in bytes.
+            total_size = int(r.headers.get('content-length', 0))
+            block_size = 1024
+            wrote = 0
+            with open('output.bin', 'wb') as f:
+                for data in tqdm(r.iter_content(block_size), total=math.ceil(total_size//block_size) , unit='KB', unit_scale=True):
+                    wrote = wrote  + len(data)
+                    f.write(data)
+            if total_size != 0 and wrote != total_size:
+                print("ERROR, something went wrong")
+        else:
+            print("SKIPPED, file exists - " + filename)
+
+    def gallery_process(self, post, verbose, downloadDir, unsave):
+        """Secondary processing of the URL
+        The first method grabs any direct links to an allowed extension, but some urls don't link directly to content.
+        For example, reddit has new galleries that only show image URLs in the metadata.
+        This helper method will scrape known galleries if I have explicitly written a case to handle it.
+        NSFW posts have already been included or excluded because of the parent method filtering on them.
+
+        Arguments:
+            verbose {boolean} -- set output verbosity
+            downloadDir {string} -- destination of saved files
+            unsave {boolean} -- should processed posts be unsaved
+        Returns:
+            None
+        """
+        if post.url.find("reddit.com/gallery/") != -1:
+            downloads = 0
+            if verbose:
+                print("reddit gallery\t" + str(post.url))
+            gallery_data = post.media_metadata
+            for media_id in gallery_data:
+                image_data = post.media_metadata[media_id]
+                if image_data['e'] == 'Image':
+                    if len(image_data['p']) > 0 : # 'p' sub-list of URLs
+                        media_url = image_data['p'][-1]['u']
+                        if verbose:
+                            print("p:\t" + media_url)
+                        prawScraper.download_file(media_url, downloadDir)
+                        downloads += 1
+            if unsave and downloads > 0:
+                if verbose:
+                    print(post.title + " was unsaved.")
+                post.unsave()
+
 
 def main(argv):
         """Main function for fetching saved reddit posts
