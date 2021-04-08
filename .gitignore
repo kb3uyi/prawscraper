@@ -4,3 +4,9 @@ output.bin
 example.txt
 log.txt
 .vscode/
+
+#group exclusions
+*scraps.py
+authentication_*.json
+!authentication_template.json
+*.secret
