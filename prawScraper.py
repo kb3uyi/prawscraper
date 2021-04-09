@@ -12,9 +12,12 @@ from urllib.parse import urlparse
 
 class prawScraper:
     # Constructor method with instance variables allowedFiletypes and agedebug
-    def __init__(self, allowedFiletypes, debug):
+    def __init__(self, allowedFiletypes, debug, retries):
         self.allowedFiletypes = allowedFiletypes
         self.debug = debug
+        self.retries = retries
+        self.total_media = 0 
+        self.skipped_media = 0
 
     def scrape(self, subreddit, limit, verbose, downloadDir, authFile, nsfw, unsave):
         """Function to loop over the saved reddit posts.
@@ -61,21 +64,46 @@ class prawScraper:
                 print("Selected subredit name: " + selected_sub.name)
                 print("Selected subredit id: " + selected_sub.id)
 
-        if saved_limit is None:
-            saved = reddit.user.me().saved()
-        else:
-            saved = reddit.user.me().saved(limit=saved_limit)
+        fetch_attempts = 0
+        for try_num in range(0,self.retries):
+            if saved_limit is None:
+                saved = reddit.user.me().saved()
+            else:
+                saved = reddit.user.me().saved(limit=saved_limit)
 
-        for post in saved:
+            for post in saved:
+                try:
+                    if isinstance(post, praw.models.Submission):
+                        if subreddit_selected == True:
+                            if post.subreddit_id == selected_sub.name:
+                                prawScraper.process_post(post, verbose, downloadDir, nsfw, unsave)
+                        else:
+                            prawScraper.process_post(self, post, verbose, downloadDir, nsfw, unsave)
+                except AttributeError as err:
+                    print(err)
+                    self.skipped_media += 1
+                    continue
+            fetch_attempts += 1
+            
+
+        if limit != None:                
             try:
-                if isinstance(post, praw.models.Submission):
-                    if subreddit_selected == True:
-                        if post.subreddit_id == selected_sub.name:
-                            prawScraper.process_post(post, verbose, downloadDir, nsfw, unsave)
-                    else:
-                        prawScraper.process_post(self, post, verbose, downloadDir, nsfw, unsave)
-            except AttributeError as err:
-                print(err)
+                limit_int = int(limit)
+            except Exception as error:
+                print(error)
+                return
+        else:
+            limit_int = None
+
+        if verbose:
+            print(f"/**********************/")
+            print(f"prawscraper downloaded")
+            print(f"{self.total_media} media") 
+            print(f"\t({self.skipped_media} skipped)")
+            print(f"\t({limit_int} limit)")
+            print(f"after {fetch_attempts} attempts")
+            print(f"\t({self.retries} allowed)")
+            print(f"/**********************/")
 
     def process_post(self, post, verbose, downloadDir, nsfw, unsave):
         """Function to process individual posts from the set of fetched posts
@@ -107,7 +135,7 @@ class prawScraper:
                 print(post.url + " : " + filename)
 
             # Call helper method for code reuse
-            prawScraper.download_file(post.url, downloadDir)
+            prawScraper.download_file(self, post.url, downloadDir)
 
             if unsave:
                 if verbose:
@@ -115,10 +143,11 @@ class prawScraper:
                 post.unsave()
         elif self.debug:
             print("REJECTED - " + post.url + " : " + filename)
+            self.skipped_media += 1
         else:
             prawScraper.gallery_process(self, post, verbose, downloadDir, unsave)
             
-    def download_file(downloadURL, downloadDir):
+    def download_file(self, downloadURL, downloadDir):
         """Download a file once the URL is completely set.
 
         Arguments:
@@ -149,8 +178,11 @@ class prawScraper:
                     f.write(data)
             if total_size != 0 and wrote != total_size:
                 print("ERROR, something went wrong")
+
+            self.total_media += 1
         else:
             print("SKIPPED, file exists - " + filename)
+            self.skipped_media += 1
 
     def gallery_process(self, post, verbose, downloadDir, unsave):
         """Secondary processing of the URL
@@ -171,15 +203,18 @@ class prawScraper:
             if verbose:
                 print("reddit gallery\t" + str(post.url))
             gallery_data = post.media_metadata
-            for media_id in gallery_data:
-                image_data = post.media_metadata[media_id]
-                if image_data['e'] == 'Image':
-                    if len(image_data['p']) > 0 : # 'p' sub-list of URLs
-                        media_url = image_data['p'][-1]['u']
-                        if verbose:
-                            print("p:\t" + media_url)
-                        prawScraper.download_file(media_url, downloadDir)
-                        downloads += 1
+            try:
+                for media_id in gallery_data:
+                    image_data = post.media_metadata[media_id]
+                    if image_data['e'] == 'Image':
+                        if len(image_data['p']) > 0 : # 'p' sub-list of URLs
+                            media_url = image_data['p'][-1]['u']
+                            if verbose:
+                                print("p:\t" + media_url)
+                            prawScraper.download_file(media_url, downloadDir)
+                            downloads += 1
+            except Exception as error:
+                print(error)
             if unsave and downloads > 0:
                 if verbose:
                     print(post.title + " was unsaved.")
@@ -207,6 +242,8 @@ def main(argv):
                             action="store_true")
         parser.add_argument("-nsfw", "--not_safe_for_work", dest="nsfw", default="none",
                             help="show nsfw posts: none, include, exclusive", metavar="NSFW_FLAG")
+        parser.add_argument("-r", "-retries", dest="retries", type=int,default= 1,
+                        help="number of times to fetch saved posts", metavar="RETRIES")
         parser.add_argument("-u", "--unsave", help="unsave the posts that get downloaded", action="store_true")
         parser.add_argument("--debug", dest="debug", help=argparse.SUPPRESS, action="store_true")
 
@@ -223,7 +260,7 @@ def main(argv):
             print("DEBUG: unsave = " + str(args.unsave))
             print("DEBUG: types file = " + args.typesJSON)
 
-        scraperObj = prawScraper(types_data['allowedFiletypes'], args.debug)
+        scraperObj = prawScraper(types_data['allowedFiletypes'], args.debug, args.retries)
         scraperObj.scrape(args.subreddit, args.limit, args.verbose, args.directory, args.authfile, args.nsfw, args.unsave)
 
 if __name__ == "__main__":
