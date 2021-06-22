@@ -10,6 +10,7 @@ praw = "*"
 tqdm = "*"
 requests = "*"
 Pipfile = "*"
+beautifulsoup4 = "*"
 
 [requires]
 python_version = "3"
