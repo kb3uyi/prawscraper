@@ -9,6 +9,7 @@ import requests
 import math
 from os import path
 from urllib.parse import urlparse
+import urllib
 from bs4 import BeautifulSoup
 
 class prawScraper:
@@ -143,7 +144,7 @@ class prawScraper:
                     print(post.title + " was unsaved.")
                 post.unsave()
         elif extension == '':
-            prawScraper.empty_extension(self, post.url, filename, extension, downloadDir)
+            prawScraper.empty_extension(self, post.url, filename, extension, downloadDir, verbose)
         elif self.debug and extension != '':
             print(f"REJECTED - {post.url} : {filename} : ext= \"{extension}\"")
             self.skipped_media += 1
@@ -223,52 +224,51 @@ class prawScraper:
                     print(post.title + " was unsaved.")
                 post.unsave()
                 
-    def empty_extension(self, downloadURL, filename, extension, downloadDir):
+    def empty_extension(self, downloadURL, filename, extension, downloadDir, verbose):
         domain_handled = False
+        try: 
+            domain = urlparse(downloadURL).netloc.split('.')[-2]
+        except:
+            if self.debug:
+                print(f"BAD DOMAIN - {downloadURL}")
+            return ""
 
-        if downloadURL.find('reddit') > 0:
+        if domain == 'reddit':
             domain_handled = True
             pass
 
-        if downloadURL.find('redgifs') > 0:
-            #redgifs doesn't link raw files, and most of the time they're mp4
+        if domain == 'redgifs':
             domain_handled = True
-            #downloadURL = downloadURL + '.mp4'
-            #prawScraper.download_file(self, downloadURL, downloadDir)
-            print(f"REDGIFS - {downloadURL} : {filename} : ext= \"{extension}\"")
-            realURL = prawScraper.video_source(self, downloadURL)
-            print(f"realurl = {realURL}")
-
-        if downloadURL.find("imgur.com/a/") > 0 and False:
-            #imgur albums require an api link
-            downloadURL = "https://api.imgur.com/3/album/" + filename
-            prawScraper.download_file(self, downloadURL, downloadDir)
+            
+            soup = BeautifulSoup(requests.get(downloadURL).content, 'html.parser')
+            meta_tags = soup.find_all("meta")
+            for tag in meta_tags:
+                if "property" in tag.attrs:
+                    if tag.attrs['property'] == "og:video":
+                        content_url = tag.attrs['content']
+                        urlParts =  urlparse(content_url) # Parse URL into parts
+                        filename =  path.basename(urlParts.path) # basename is the filename and extension
+                        extension = path.splitext(filename)[1].split("?")[0] # split for extension
+                        if extension in self.allowedFiletypes:
+                            # filetype allowed, download
+                            if verbose:
+                                print(f"{content_url} : {filename}")
+                            prawScraper.download_file(self, content_url, downloadDir)
+                        return
+        if domain == 'imgur':
+            if downloadURL.find("imgur.com/a/") > 0:
+                #imgur album
+                album_name = downloadURL.split("/")[-1]
+                if verbose:
+                    print(f"imgur album: {album_name}")
+                with urllib.request.urlopen(downloadURL) as f:
+                    soup = BeautifulSoup(f.read(),'lxml')
+                    print(soup)
+                exit(1)
+                return 
 
         if self.debug and domain_handled == False:
-            print(f"No Extension - {downloadURL} : {filename} : ext= \"{extension}\"")
-
-    def video_source(self, url):
-        """
-        Reddit user u/Faustain (author of u/r34robot) posted this:
-        https://www.reddit.com/r/redditdev/comments/himjkp/figured_out_how_to_get_source_url_for_gfycat_and/
-
-        It uses beautifulsoup to find the actual source url from the response html document, and works on a family of similarly designed mobile video sites.
-
-        Thismethod was 11 months old when I started but it didnt work with the way reddit was presenting saved urls.
-        This worked: url = 'https://gfycat.com/hopefulhighasiansmallclawedotter-elephant-thirsty'
-        This didn't: redgifs, because soup.find_all("source") was blank.
-
-        There is also the problem of these sites defaulting to the low res gif, but the urls usually make sense.
-        I.E. xyz-mobile.mp4 vs xyz.mp4
-
-        """
-        #url = 'https://gfycat.com/hopefulhighasiansmallclawedotter-elephant-thirsty'
-        soup = BeautifulSoup(requests.get(url).content, 'html.parser')
-        print( list(soup.find_all("video")))
-        #return [item.get('src') for item in list(soup.find_all("source")) if item.get('src') is not None and 'mobile' not in item.get('src') and 'mp4' in item.get('src')][0]
-        exit(1)
-        return ""
-
+            print(f"No Extension - {downloadURL} : {filename}")
 
 def main(argv):
         """Main function for fetching saved reddit posts

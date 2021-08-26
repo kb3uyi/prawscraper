@@ -11,6 +11,7 @@ tqdm = "*"
 requests = "*"
 Pipfile = "*"
 beautifulsoup4 = "*"
+lxml = "*"
 
 [requires]
 python_version = "3"
