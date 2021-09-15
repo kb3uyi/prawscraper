@@ -144,7 +144,12 @@ class prawScraper:
                     print(post.title + " was unsaved.")
                 post.unsave()
         elif extension == '':
-            prawScraper.empty_extension(self, post.url, filename, extension, downloadDir, verbose)
+            empty_case_download = prawScraper.empty_extension(self, post.url, filename, extension, downloadDir, verbose)
+            # add unsave to the handling of ambiguous files
+            if unsave & empty_case_download:
+                if verbose:
+                    print(post.title + " was unsaved.")
+                post.unsave()
         elif self.debug and extension != '':
             print(f"REJECTED - {post.url} : {filename} : ext= \"{extension}\"")
             self.skipped_media += 1
@@ -226,6 +231,7 @@ class prawScraper:
                 
     def empty_extension(self, downloadURL, filename, extension, downloadDir, verbose):
         domain_handled = False
+        something_downloaded = False
         try: 
             domain = urlparse(downloadURL).netloc.split('.')[-2]
         except:
@@ -254,7 +260,8 @@ class prawScraper:
                             if verbose:
                                 print(f"{content_url} : {filename}")
                             prawScraper.download_file(self, content_url, downloadDir)
-                        return
+                            something_downloaded = True
+                        return(something_downloaded)
         if domain == 'imgur':
             if downloadURL.find("imgur.com/a/") > 0:
                 #imgur album
@@ -263,12 +270,14 @@ class prawScraper:
                     print(f"imgur album: {album_name}")
                 with urllib.request.urlopen(downloadURL) as f:
                     soup = BeautifulSoup(f.read(),'lxml')
-                    print(soup)
-                exit(1)
-                return 
-
+                    # TODO: find an alternative to the imgur API call
+                    # print(soup)
+               
         if self.debug and domain_handled == False:
             print(f"No Extension - {downloadURL} : {filename}")
+
+        # General return for unhandled domains
+        return(something_downloaded)
 
 def main(argv):
         """Main function for fetching saved reddit posts
